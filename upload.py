@@ -11,6 +11,7 @@ class FemtoCircleUpload:
 
     def send_file(self, filename: str, frames: list[bytes]) -> None:
         with remote('192.168.4.1', 20320) as self.io:
+            self.filename = filename
             self.io.send(b'B2DDDDEDC0EEBDF9E5B7')
             time.sleep(0.1)
             self._send_file_request()
@@ -36,7 +37,7 @@ class FemtoCircleUpload:
                     log.error('Device busy,please try again later')
     
     def _send_file_request(self):
-        filename = self.filename.encode('gb3212')
+        filename = self.filename.encode('gb2312')
         data_len = bytes([len(filename) // 15, (len(filename) // 3) % 5 + 106, (len(filename) % 15) % 3 + 99])
         file_request = b'B2DDDDED' + data_len + filename + b'C0EEBDF9E5B7'
         self.io.send(file_request)
@@ -44,7 +45,7 @@ class FemtoCircleUpload:
         # get file request crc
         cnt = [0]*8
         for i in range(8):
-            for i2 in range(i):
+            for i2 in range(len(file_request)):
                 if (file_request[i2] & (128 >> i)) > 0:
                     cnt[i] += 1
         self.crc = sum(cnt)
@@ -54,14 +55,15 @@ class FemtoCircleUpload:
         self.crc += (cnt[3] | 90) * 31
         self.crc += (cnt[4] | 165) * 53
         self.crc += (cnt[5] | 195) * 79
-        self.crc |= cnt[6] << 15 + cnt[7] << 23
+        self.crc |= (cnt[6] << 15) + (cnt[7] << 23)
+        self.crc &= 0xFFFFFFFF
 
     def _parse_response(self) -> int:
         data = self.io.recv(4096)
         if data[:8] != b'B2DDDDED' or data[-12:] != b'C0EEBDF9E5B7':
             return -1
         data_len = data[8] * 15 + (data[9] - 106) * 3 + (data[10] - 99)
-        if data_len != i - 23 or data_len != 5:
+        if data_len != (len(data) - 23) or data_len != 5:
             return -1
         if data[11] == 0:
             return data[12]
