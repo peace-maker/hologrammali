@@ -1,5 +1,7 @@
+#!/usr/bin/env python3
 import cv2
 import sys
+import struct
 
 # device_model = 11
 Center_Operate_Mode = 0
@@ -11,7 +13,7 @@ Target_Result_Width = 252
 Decode_One_Picture_Operate_Size = Target_Result_Width * Decode_Video_Height * 8 // 6
 Decode_One_Picture_Target_Size = Target_Result_Width * Decode_Video_Height
 
-def convert_image(path):
+def convert_image(path, gamma_mode=0):
     img = cv2.imread(path, cv2.IMREAD_COLOR)
 
     width = img.shape[1]
@@ -30,7 +32,8 @@ def convert_image(path):
     polar_img = polar_img.astype('uint8')
     polar_img = bytes(polar_img)
 
-    def adjust_gamma(gamma_code, mode):
+    def make_gamma_table(mode):
+        gamma_code = bytearray(256)
         if mode == 0:
             for i in range(256):
                 gamma_code[i] = (i * (i + 1) * (i + 1)) >> 16
@@ -40,62 +43,40 @@ def convert_image(path):
         else:
             for i in range(256):
                 if i > 180:
-                    gamma_code[i] = -1
+                    gamma_code[i] = 0xff
                 else:
                     gamma_code[i] = ((i + 1) * i) >> 7
+        return gamma_code
 
-    gamma_code = bytearray(256)
-    adjust_gamma(gamma_code, 0)
+    gamma_code = make_gamma_table(gamma_mode)
 
     for i in range(Decode_One_Picture_Operate_Size):
         target[i] = gamma_code[polar_img[i] & 0xff]
 
-    c24 = 0
-    c6 = 0
-    c3 = 0
-    c2 = 0
-    c12 = 0
-
     for h_out in range(Decode_Video_Height):
         h_target = ((Target_Result_Width * h_out) // 3) * 4
 
-        if c24 != 0:
+        if h_out % 24:
             target[h_target] = 0
             target[h_target + 1] = 0
             target[h_target + 2] = 0
-            if c6 != 0:
+            if h_out % 6:
                 target[h_target + 3] = 0
                 target[h_target + 4] = 0
                 target[h_target + 5] = 0
-                if c3 != 0:
+                if h_out % 3:
                     target[h_target + 6] = 0
                     target[h_target + 7] = 0
                     target[h_target + 8] = 0
 
-        if c2 == 0:
+        if not h_out % 2:
             target[h_target + 9] = 0
             target[h_target + 10] = 0
             target[h_target + 11] = 0
-            if c12 == 0:
+            if not h_out % 12:
                 target[h_target + 12] = 0
                 target[h_target + 13] = 0
                 target[h_target + 14] = 0
-
-        c12 += 1
-        if c12 == 12:
-            c12 = 0
-        c24 += 1
-        if c24 == 24:
-            c24 = 0
-        c6 += 1
-        if c6 == 6:
-            c6 = 0
-        c3 += 1
-        if c3 == 3:
-            c3 = 0
-        c2 += 1
-        if c2 == 2:
-            c2 = 0
 
     def extract_bits(data, offset, bit):
         result = 0
@@ -114,20 +95,17 @@ def convert_image(path):
                 out[out_off + (Target_Result_Width // 6) * (5 - bit)] = b
             target_off += 8
 
-    buf = bytearray(4)
-    i80 = 2
-    for i81 in range(Decode_Video_Height * 6):
-        for b7 in range(10):
-            buf[0] = out[i80]
-            buf[1] = out[i80 + 1]
-            buf[2] = out[i80 + 2]
-            buf[3] = out[i80 + 3]
-            out[i80] = (buf[0] & 128) | ((buf[2] & 128) >> 1) | ((buf[0] & 64) >> 1) | ((buf[2] & 64) >> 2) | ((buf[0] & 32) >> 2) | ((buf[2] & 32) >> 3) | ((buf[0] & 16) >> 3) | ((buf[2] & 16) >> 4)
-            out[i80 + 1] = ((buf[0] & 1) << 1) | ((buf[0] & 8) << 4) | ((buf[2] & 8) << 3) | ((buf[0] & 4) << 3) | ((buf[2] & 4) << 2) | ((buf[0] & 2) << 2) | ((buf[2] & 2) << 1) | (buf[2] & 1)
-            out[i80 + 2] = (buf[1] & 128) | ((buf[3] & 128) >> 1) | ((buf[1] & 64) >> 1) | ((buf[3] & 64) >> 2) | ((buf[1] & 32) >> 2) | ((buf[3] & 32) >> 3) | ((buf[1] & 16) >> 3) | ((buf[3] & 16) >> 4)
-            out[i80 + 3] = ((buf[1] & 8) << 4) | ((buf[3] & 8) << 3) | ((buf[1] & 4) << 3) | ((buf[3] & 4) << 2) | ((buf[1] & 2) << 2) | ((buf[3] & 2) << 1) | ((buf[1] & 1) << 1) | (buf[3] & 1)
-            i80 += 4
-        i80 += 2
+    for pos in range(0, len(out), 42):
+        for pos in range(pos + 2, pos + 42, 4):
+            c2,c1 = struct.unpack(">HH", out[pos:][:4])
+            res = 0
+            for i in range(0, 32, 2):
+                res |= (c1 & 1) << i
+                res |= (c2 & 1) << i + 1
+                c1 >>= 1
+                c2 >>= 1
+            out[pos:pos+4] = struct.pack(">I", res)
+
     return out
 
 if __name__ == "__main__":
