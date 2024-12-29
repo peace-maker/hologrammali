@@ -8,6 +8,7 @@ import convert, upload, control
 import time
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 3 * 1000 * 1000
 mutex = Lock()
 
 # Set the upload folder and allowed extensions
