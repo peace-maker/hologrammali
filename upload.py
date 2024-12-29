@@ -23,6 +23,7 @@ class FemtoCircleUpload:
                         for i, frame in enumerate(frames):
                             p.status(f'Uploading frame {i+1}/{len(frames)}')
                             self.io.send(frame)
+                            time.sleep(0.2)
                     time.sleep(0.1)
                     self.io.send(b'B2DDDDEDC0EEBDF9E5B7')
                 case -1:
