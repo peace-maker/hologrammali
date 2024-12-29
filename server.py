@@ -8,6 +8,8 @@ import convert
 import upload
 import control
 
+mutex = threading.Lock()
+
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
     def handle(self):
@@ -32,9 +34,13 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
                     self.request.sendall(b'Error converting image (no transparency pls)\n')
                     return
                 self.request.sendall(f'Converted image size: {len(out)}\n'.encode())
-                upload.FemtoCircleUpload().send_file("output.bin", [out])
-                client = control.FemtoCircleControl()
-                client.playFileFromList(1) # TODO get OUTPUT.BIN index from client.state.filelist
+                with mutex:
+                    upload.FemtoCircleUpload().send_file("output.bin", [out])
+                    upload.FemtoCircleUpload().send_file("output2.bin", [out])
+                    upload.FemtoCircleUpload().send_file("output3.bin", [out])
+                    upload.FemtoCircleUpload().send_file("output4.bin", [out])
+                    client = control.FemtoCircleControl()
+                    client.playFileFromList(1) # TODO get OUTPUT.BIN index from client.state.filelist
         except Exception as e:
             self.request.sendall(b'Error converting image\n')
             print(e)
