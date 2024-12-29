@@ -5,14 +5,14 @@ from threading import Lock
 import tempfile
 from  werkzeug.exceptions import HTTPException
 import convert, upload, control
+import time
 
 app = Flask(__name__)
 mutex = Lock()
 
 # Set the upload folder and allowed extensions
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = 'uploaded'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Ensure the upload folder exists
 if not os.path.exists(UPLOAD_FOLDER):
@@ -38,6 +38,8 @@ def _send_file(data):
                 client.playFileFromList(0)
     except Exception as e:
         raise HTTPException('Error converting image')
+    with open(f'{UPLOAD_FOLDER}/{time.time()}.image', 'wb') as f:
+        f.write(data)
 
 # Route to display uploaded images
 @app.route('/')
@@ -58,4 +60,4 @@ def upload_image():
     return 'Invalid file format. Only PNG, JPG, JPEG, GIF allowed.', 400
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=4242)
