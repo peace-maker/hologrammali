@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for
 from werkzeug.utils import secure_filename
 from threading import Lock
 import tempfile
-import time
+from  werkzeug.exceptions import HTTPException
 import convert, upload, control
 
 app = Flask(__name__)
@@ -29,7 +29,7 @@ def _send_file(data):
             f.flush()
             out = convert.convert_image(f.name)
             if all(v == 0 for v in out):
-                raise Exception('Error converting image (no transparency pls)\n')
+                raise HTTPException('Error converting image (no transparency pls)\n')
             print(f'Converted image size: {len(out)}\n'.encode())
             with mutex:
                 client = control.FemtoCircleControl()
@@ -37,10 +37,7 @@ def _send_file(data):
                 upload.FemtoCircleUpload().send_file("output.bin", [out])
                 client.playFileFromList(0)
     except Exception as e:
-        raise Exception('Error converting image\n')
-    #with open(f'uploaded/{time.time()}.image', 'wb') as f:
-    #    f.write(data)
-    print('OK')
+        raise HTTPException('Error converting image')
 
 # Route to display uploaded images
 @app.route('/')
@@ -61,4 +58,4 @@ def upload_image():
     return 'Invalid file format. Only PNG, JPG, JPEG, GIF allowed.', 400
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False, host='0.0.0.0', port=5000)
