@@ -5,6 +5,7 @@ if len(sys.argv) != 3:
     print("Usage: python3 read_image.py <image_path> <output_path>")
     sys.exit(1)
 
+# device_model = 11
 Center_Operate_Mode = 0
 Exchange_Mode = 1
 targetFPS = 12.0
