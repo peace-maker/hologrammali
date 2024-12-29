@@ -54,6 +54,9 @@ def upload_image():
         return redirect(request.url)
 
     file = request.files['file']
+    if file.content_length > 3 * 1000 * 1000:
+        return 'Invalid size', 400
+
     if file and allowed_file(file.filename):
         _send_file(file.stream.read())
         return redirect(url_for('index'))
