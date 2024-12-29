@@ -34,6 +34,7 @@ def _send_file(data):
             print(f'Converted image size: {len(out)}\n'.encode())
             with mutex:
                 client = control.FemtoCircleControl()
+                client.setSingleLoop()
                 client.playFileFromList(1) #play wait.bin
                 upload.FemtoCircleUpload().send_file("output.bin", [out])
                 client.playFileFromList(0)

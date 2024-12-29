@@ -35,13 +35,11 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
                     return
                 self.request.sendall(f'Converted image size: {len(out)}\n'.encode())
                 with mutex:
-                    upload.FemtoCircleUpload().send_file("output.bin", [out])
-                    upload.FemtoCircleUpload().send_file("output2.bin", [out])
-                    upload.FemtoCircleUpload().send_file("output3.bin", [out])
-                    upload.FemtoCircleUpload().send_file("output4.bin", [out])
-                    upload.FemtoCircleUpload().send_file("output5.bin", [out])
                     client = control.FemtoCircleControl()
-                    client.playFileFromList(1) # TODO get OUTPUT.BIN index from client.state.filelist
+                    client.setSingleLoop()
+                    client.playFileFromList(1) #play wait.bin
+                    upload.FemtoCircleUpload().send_file("output.bin", [out])
+                    client.playFileFromList(0) # TODO get OUTPUT.BIN index from client.state.filelist
         except Exception as e:
             self.request.sendall(b'Error converting image\n')
             print(e)
