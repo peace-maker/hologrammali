@@ -6,6 +6,7 @@ import time
 
 import convert
 import upload
+import control
 
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
@@ -32,6 +33,8 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
                     return
                 self.request.sendall(f'Converted image size: {len(out)}\n'.encode())
                 upload.FemtoCircleUpload().send_file("output.bin", [out])
+                client = control.FemtoCircleControl()
+                client.playFileFromList(1) # TODO get OUTPUT.BIN index from client.state.filelist
         except Exception as e:
             self.request.sendall(b'Error converting image\n')
             print(e)
