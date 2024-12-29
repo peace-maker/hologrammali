@@ -11,7 +11,7 @@ class FemtoCircleUpload:
 
     def send_file(self, filename: str, frames: list[bytes]) -> None:
         for tryno in range(3):
-            with remote('192.168.4.1', 20320, log_level="error") as self.io:
+            with remote('192.168.4.1', 20320, level="error") as self.io:
                 self.filename = filename
                 self.io.send(b'B2DDDDEDC0EEBDF9E5B7')
                 time.sleep(0.1)

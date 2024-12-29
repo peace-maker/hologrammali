@@ -3,6 +3,7 @@ import tempfile
 import threading
 import socketserver
 import time
+import atexit
 
 import convert
 import upload
@@ -68,5 +69,9 @@ if __name__ == "__main__":
         server_thread.daemon = True
         server_thread.start()
         print("Server loop running in thread:", server_thread.name)
+
+        def shutdown():
+            server.shutdown()
+        atexit.register(shutdown)
 
         server.serve_forever()
