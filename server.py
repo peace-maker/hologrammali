@@ -27,7 +27,7 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
                 f.write(data)
                 f.flush()
                 out = convert.convert_image(f.name)
-                if all(out, lambda x: x == 0):
+                if all(v == 0 for v in out):
                     self.request.sendall(b'Error converting image (no transparency pls)\n')
                     return
                 self.request.sendall(f'Converted image size: {len(out)}\n'.encode())
@@ -46,7 +46,7 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
 if __name__ == "__main__":
     # Port 0 means to select an arbitrary unused port
-    HOST, PORT = "0.0.0.0", 1337
+    HOST, PORT = "0.0.0.0", 4242
 
     server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
     with server:

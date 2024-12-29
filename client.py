@@ -6,7 +6,7 @@ if len(sys.argv) != 3:
     sys.exit(1)
 
 data = read(sys.argv[1])
-io = remote(sys.argv[2], 1337)
+io = remote(sys.argv[2], 4242)
 io.sendafter(b'Byte count: ', str(len(data)).encode())
 io.sendafter(b'bytes: ', data)
 result = io.recvallS()
