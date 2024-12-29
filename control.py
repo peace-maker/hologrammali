@@ -85,7 +85,7 @@ class FemtoCircleControl:
     _receiver: context.Thread
 
     def __init__(self, interactive = False):
-        self.io = remote('192.168.4.1', 20320)
+        self.io = remote('192.168.4.1', 20320, log_level="error")
         # request initial config?
         self.io.send(b'C0EEB7C9BAA3C0EEBDF9E5B7')
 

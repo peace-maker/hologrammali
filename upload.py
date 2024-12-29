@@ -10,32 +10,36 @@ class FemtoCircleUpload:
     send_audio_flag: bool
 
     def send_file(self, filename: str, frames: list[bytes]) -> None:
-        with remote('192.168.4.1', 20320) as self.io:
-            self.filename = filename
-            self.io.send(b'B2DDDDEDC0EEBDF9E5B7')
-            time.sleep(0.1)
-            self._send_file_request()
-            response = self._parse_response()
-            match response:
-                case 0:
-                    log.info('Start uploading')
-                    with log.progress('Uploading') as p:
-                        for i, frame in enumerate(frames):
-                            p.status(f'Uploading frame {i+1}/{len(frames)}')
-                            self.io.send(frame)
-                            time.sleep(0.2)
-                    time.sleep(0.1)
-                    self.io.send(b'B2DDDDEDC0EEBDF9E5B7')
-                case -1:
-                    log.error('Invalid command')
-                case 1:
-                    log.error('SDCard error')
-                case 2:
-                    log.error('Other phone is sending,please wait and retry')
-                case 4:
-                    log.error('Device license error')
-                case _:
-                    log.error('Device busy,please try again later')
+        for tryno in range(3):
+            with remote('192.168.4.1', 20320, log_level="error") as self.io:
+                self.filename = filename
+                self.io.send(b'B2DDDDEDC0EEBDF9E5B7')
+                time.sleep(0.1)
+                self._send_file_request()
+                response = self._parse_response()
+                match response:
+                    case 0:
+                        log.info('Start uploading try %d', tryno)
+                        with log.progress('Uploading') as p:
+                            for i, frame in enumerate(frames):
+                                p.status(f'Uploading frame {i+1}/{len(frames)}')
+                                self.io.send(frame)
+                                time.sleep(0.2)
+                        time.sleep(0.1)
+                        self.io.send(b'B2DDDDEDC0EEBDF9E5B7')
+                        break
+                    case -1:
+                        log.error('Invalid command')
+                    case 1:
+                        log.error('SDCard error')
+                    case 2:
+                        log.error('Other phone is sending,please wait and retry')
+                    case 4:
+                        log.error('Device license error')
+                    case _:
+                        log.error('Device busy,please try again later')
+        else:
+            log.error('Failed to upload file')
     
     def _send_file_request(self):
         filename = self.filename.encode('gb2312')
