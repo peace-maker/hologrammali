@@ -25,7 +25,7 @@ def convert_image(path):
 
     target_size = (Decode_Vedio_Width, Decode_Video_Height)
     polar_img = cv2.resize(polar_img, target_size)
-    polar_img = cv2.cvtColor(polar_img, cv2.COLOR_BGRA2BGR)
+    polar_img = cv2.cvtColor(polar_img, cv2.COLOR_RGB2BGR)
     # polar_img = cv2.convertTo(polar_img, cv2.CV_8UC3)
     polar_img = polar_img.astype('uint8')
     polar_img = bytes(polar_img)
