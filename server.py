@@ -14,7 +14,6 @@ mutex = threading.Lock()
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
     def handle(self):
-        self.request.settimeout(5)
         self.request.sendall(b'Hi. Send an image to display.\nByte count: ')
         data = str(self.request.recv(1024), 'ascii')
         size = int(data)
@@ -25,7 +24,7 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         data = b''
         while len(data) < size:
             data += self.request.recv(size)
-        
+
         try:
             with tempfile.NamedTemporaryFile() as f:
                 f.write(data)
@@ -40,6 +39,7 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
                     upload.FemtoCircleUpload().send_file("output2.bin", [out])
                     upload.FemtoCircleUpload().send_file("output3.bin", [out])
                     upload.FemtoCircleUpload().send_file("output4.bin", [out])
+                    upload.FemtoCircleUpload().send_file("output5.bin", [out])
                     client = control.FemtoCircleControl()
                     client.playFileFromList(1) # TODO get OUTPUT.BIN index from client.state.filelist
         except Exception as e:
@@ -59,6 +59,7 @@ if __name__ == "__main__":
     HOST, PORT = "0.0.0.0", 4242
 
     server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
+    server.allow_reuse_address = True
     with server:
         ip, port = server.server_address
 

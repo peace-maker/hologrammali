@@ -11,6 +11,7 @@ class FemtoCircleUpload:
 
     def send_file(self, filename: str, frames: list[bytes]) -> None:
         for tryno in range(3):
+            log.info('Start uploading %s try %d', filename, tryno)
             with remote('192.168.4.1', 20320, level="error") as self.io:
                 self.filename = filename
                 self.io.send(b'B2DDDDEDC0EEBDF9E5B7')
@@ -19,7 +20,6 @@ class FemtoCircleUpload:
                 response = self._parse_response()
                 match response:
                     case 0:
-                        log.info('Start uploading try %d', tryno)
                         with log.progress('Uploading') as p:
                             for i, frame in enumerate(frames):
                                 p.status(f'Uploading frame {i+1}/{len(frames)}')
@@ -27,6 +27,7 @@ class FemtoCircleUpload:
                                 time.sleep(0.2)
                         time.sleep(0.1)
                         self.io.send(b'B2DDDDEDC0EEBDF9E5B7')
+                        time.sleep(0.1)
                         break
                     case -1:
                         log.error('Invalid command')
@@ -40,6 +41,7 @@ class FemtoCircleUpload:
                         log.error('Device busy,please try again later')
         else:
             log.error('Failed to upload file')
+        time.sleep(0.5)
     
     def _send_file_request(self):
         filename = self.filename.encode('gb2312')
