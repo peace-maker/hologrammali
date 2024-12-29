@@ -84,13 +84,15 @@ class FemtoCircleControl:
     state: State
     _receiver: context.Thread
 
-    def __init__(self):
+    def __init__(self, interactive = False):
         self.io = remote('192.168.4.1', 20320)
         # request initial config?
         self.io.send(b'C0EEB7C9BAA3C0EEBDF9E5B7')
 
         def recv_packet():
-            state_line = term.output()
+            if interactive:
+                state_line = term.output()
+                file_list_line = term.output()
             try:
                 while True:
                     data = self.io.recv(4096)
@@ -105,7 +107,9 @@ class FemtoCircleControl:
                     if cmd == 105: # i
                         # file list information
                         self.state = State(payload_data)
-                        state_line.update(str(self.state))
+                        if interactive:
+                            state_line.update(str(self.state))
+                            file_list_line.update(f"{self.state.filelist}")
                         
                     elif cmd == 114: # r
                         # password return
@@ -200,7 +204,7 @@ class FemtoCircleControl:
         self.send_packet(b'b' + bytes([panel_type & 0xff, 0, 0, 4]))
 
 def main() -> None:
-    api = FemtoCircleControl()
+    api = FemtoCircleControl(interactive=True)
 
     options = [
         {'label': 'Decrease brightness', 'op': api.decreaseBrightness},
