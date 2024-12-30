@@ -3,15 +3,14 @@ import cv2
 import sys
 import struct
 
-# device_model = 11
-Center_Operate_Mode = 0
-Exchange_Mode = 1
-targetFPS = 12.0
+
+# todo: we are only supporting "device_model = 11", which provides upt to 12 fps
 Decode_Vedio_Width = 112
 Decode_Video_Height = 512
 Target_Result_Width = 252
 Decode_One_Picture_Operate_Size = Target_Result_Width * Decode_Video_Height * 8 // 6
 Decode_One_Picture_Target_Size = Target_Result_Width * Decode_Video_Height
+
 
 def convert_image(path, gamma_mode=0):
     img = cv2.imread(path, cv2.IMREAD_COLOR)
@@ -48,14 +47,16 @@ def convert_image(path, gamma_mode=0):
                     gamma_code[i] = ((i + 1) * i) >> 7
         return gamma_code
 
+    # apply gamma correction
     gamma_code = make_gamma_table(gamma_mode)
-
     for i in range(Decode_One_Picture_Operate_Size):
         target[i] = gamma_code[polar_img[i] & 0xff]
 
-    for h_out in range(Decode_Video_Height):
+    # this might only darken the center a bit to make the brightness look more equal across the display
+    # but we are not 100% sure
+    # it might be possible to figure out something that is "smarter" and provides a better brightness correction
+    for h_out in range(Decode_Video_Height): # iterate over polar coordinate
         h_target = ((Target_Result_Width * h_out) // 3) * 4
-
         if h_out % 24:
             target[h_target] = 0
             target[h_target + 1] = 0
@@ -68,7 +69,6 @@ def convert_image(path, gamma_mode=0):
                     target[h_target + 6] = 0
                     target[h_target + 7] = 0
                     target[h_target + 8] = 0
-
         if not h_out % 2:
             target[h_target + 9] = 0
             target[h_target + 10] = 0
@@ -86,7 +86,15 @@ def convert_image(path, gamma_mode=0):
 
     target_off = 0
     decode_video_start_line_num = Decode_One_Picture_Target_Size
-    for h in range(Decode_Video_Height):
+    # each line (radial row of pixels) is subdivided in Target_Result_Width/6 switches
+    # a switch represents the higher 6 bits from 8 adjacent bytes in the target array, so 6*8 bits in total
+    # they are put into the out array in an interleaved fashion:
+    # the lowest bits (at position 2) of the 8 byte go into the byte at Target_Result_Width - 1
+    # the second-lowest bits (at position 3) of the 8 byte go into the byte at Target_Result_Width*5/6 - 1
+    # and so on...
+    # after the 8 bytes (the switch) has been processed, it just moves on to the next 8 bytes in the target array
+    # effectively, this reduces the data to 3/4 of its original size, as the intensity resolution is reduced from 8 to 6 bits
+    for h in range(Decode_Video_Height): # iterate over polar coordinate
         decode_video_start_line_num -= Target_Result_Width
         for switchid in range(Target_Result_Width // 6 - 1, -1, -1):
             out_off = decode_video_start_line_num + switchid
@@ -95,6 +103,8 @@ def convert_image(path, gamma_mode=0):
                 out[out_off + (Target_Result_Width // 6) * (5 - bit)] = b
             target_off += 8
 
+    # todo: unclear what exactly this does and why
+    # probably just because of specialized hardware...
     for pos in range(0, len(out), 42):
         for pos in range(pos + 2, pos + 42, 4):
             c2,c1 = struct.unpack(">HH", out[pos:][:4])
@@ -108,6 +118,7 @@ def convert_image(path, gamma_mode=0):
 
     return out
 
+
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: python3 read_image.py <image_path> <output_path>")
@@ -116,3 +127,4 @@ if __name__ == "__main__":
     out = convert_image(sys.argv[1])
     with open(sys.argv[2], "wb") as f:
         f.write(out)
+
