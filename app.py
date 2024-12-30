@@ -39,6 +39,7 @@ def _send_file(data):
                 upload.FemtoCircleUpload().send_file("output.bin", [out])
                 client.playFileFromList(0)
     except Exception as e:
+        print(e)
         raise HTTPException('Error converting image')
     with open(f'{UPLOAD_FOLDER}/{time.time()}.image', 'wb') as f:
         f.write(data)
