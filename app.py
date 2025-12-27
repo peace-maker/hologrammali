@@ -7,6 +7,8 @@ import tempfile
 from  werkzeug.exceptions import HTTPException
 import convert, upload, control
 import time
+from PIL import Image, ImageOps
+import io
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1000 * 1000
@@ -29,14 +31,17 @@ def allowed_file(filename):
 
 def _send_file(data: bytes):
     try:
-        with tempfile.NamedTemporaryFile() as f:
-            f.write(data)
-            f.flush()
-            out = convert.convert_image(f.name)
-            if all(v == 0 for v in out):
-                raise HTTPException('Error converting image (no transparency pls)\n')
-            print(f'Converted image size: {len(out)}\n'.encode())
-            upload_queue.put(out)
+        image = Image.open(io.BytesIO(data))
+        image = ImageOps.contain(image, (500,500))
+        b = io.BytesIO()
+        image.save(b, 'png')
+        image = b.getvalue()
+        
+        out = convert.convert_image(image)
+        if all(v == 0 for v in out):
+            raise HTTPException('Error converting image (no transparency pls)\n')
+        print(f'Converted image size: {len(out)}\n'.encode())
+        upload_queue.put(out)
     except Exception as e:
         print(e)
         raise HTTPException('Error converting image')

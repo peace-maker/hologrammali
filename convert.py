@@ -2,6 +2,7 @@
 import cv2
 import sys
 import struct
+import numpy as np
 
 
 # todo: we are only supporting "device_model = 11", which provides upt to 12 fps
@@ -12,9 +13,11 @@ Decode_One_Picture_Operate_Size = Target_Result_Width * Decode_Video_Height * 8 
 Decode_One_Picture_Target_Size = Target_Result_Width * Decode_Video_Height
 
 
-def convert_image(path, gamma_mode=0):
-    img = cv2.imread(path, cv2.IMREAD_COLOR)
-
+def convert_image(input: bytes, gamma_mode=0):
+    
+    nparr = np.fromstring(input, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR )
+    
     width = img.shape[1]
     height = img.shape[0]
 
@@ -23,14 +26,14 @@ def convert_image(path, gamma_mode=0):
 
     out = bytearray(Decode_One_Picture_Target_Size)
     target = bytearray(Decode_One_Picture_Operate_Size)
-
+    
     target_size = (Decode_Vedio_Width, Decode_Video_Height)
     polar_img = cv2.resize(polar_img, target_size)
     polar_img = cv2.cvtColor(polar_img, cv2.COLOR_RGB2BGR)
     # polar_img = cv2.convertTo(polar_img, cv2.CV_8UC3)
     polar_img = polar_img.astype('uint8')
     polar_img = bytes(polar_img)
-
+    
     def make_gamma_table(mode):
         gamma_code = bytearray(256)
         if mode == 0:

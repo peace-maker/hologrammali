@@ -1,2 +1,4 @@
 pwntools
 opencv-python
+pillow
+numpy
