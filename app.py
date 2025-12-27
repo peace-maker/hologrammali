@@ -86,8 +86,14 @@ def pump_images():
                 wait_bin_index = 3
 
             client.playFileFromList(wait_bin_index) #play wait.bin
-            print('Uploading image...')
-            upload.FemtoCircleUpload().send_file("output.bin", [out])
+            for _ in range(3):
+                print('Uploading image...')
+                try:
+                    upload.FemtoCircleUpload().send_file("output.bin", [out])
+                    break
+                except EOFError as e:
+                    print(f'Error uploading image: {e}')
+                    time.sleep(2)
             print('Upload complete, playing image...')
             try:
                 new_file_index = client.state.filelist.index('OUTPUT')
