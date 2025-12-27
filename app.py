@@ -9,7 +9,7 @@ import convert, upload, control
 import time
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 3 * 1000 * 1000
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1000 * 1000
 mutex = Lock()
 upload_thread = None
 upload_queue: Queue[bytes] = Queue()
@@ -55,7 +55,7 @@ def upload_image():
         return redirect(request.url)
 
     file = request.files['file']
-    if file.content_length > 3 * 1000 * 1000:
+    if file.content_length > 5 * 1000 * 1000:
         return 'Invalid size', 400
 
     if file and allowed_file(file.filename):
