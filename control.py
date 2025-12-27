@@ -124,6 +124,13 @@ class FemtoCircleControl:
         self._receiver.daemon = True
         self._receiver.start()
 
+    def wait_for_state(self) -> None:
+        t = Timeout()
+        with t.countdown(20):
+            while t.timeout and not hasattr(self, 'state'):
+                self.io.send(b'C0EEB7C9BAA3C0EEBDF9E5B7')
+                time.sleep(2.0)
+
     def send_packet(self, data: bytes) -> None:
         data_len = bytes([len(data) // 323, (len(data) // 17) % 19 + 99, (len(data) % 323) % 17 + 98])
         self.io.send(b'C0EEB7C9BAA3' + data_len + data + b'C0EEBDF9E5B7')
