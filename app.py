@@ -111,7 +111,10 @@ def pump_images():
         except Exception as e:
             print(f'Connection lost: {e}, reconnecting...')
         finally:
-            client.io.close()
+            try:
+                client.io.close()
+            except:
+                pass
 
 if __name__ == '__main__':
     upload_thread = Thread(target=pump_images, daemon=True)
