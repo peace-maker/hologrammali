@@ -77,36 +77,41 @@ def interrupt():
         upload_thread.join()
 
 def pump_images():
-    client = control.FemtoCircleControl()
-    client.wait_for_state()
-    print('Connected to FemtoCircle', client.state)
     while not exiting:
-        out = upload_queue.get()
-        with mutex:
-            client.setSingleLoop()
-            try:
-                wait_bin_index = client.state.filelist.index('WAIT')
-            except (ValueError, AttributeError):
-                print('No wait.bin found, uploading directly')
-                wait_bin_index = 3
+        try:
+            client = control.FemtoCircleControl()
+            client.wait_for_state()
+            print('Connected to FemtoCircle', client.state)
+            while not exiting:
+                out = upload_queue.get()
+                with mutex:
+                    client.setSingleLoop()
+                    try:
+                        wait_bin_index = client.state.filelist.index('WAIT')
+                    except (ValueError, AttributeError):
+                        print('No wait.bin found, uploading directly')
+                        wait_bin_index = 3
 
-            client.playFileFromList(wait_bin_index) #play wait.bin
-            for _ in range(3):
-                print('Uploading image...')
-                try:
-                    upload.FemtoCircleUpload().send_file("output.bin", [out])
-                    break
-                except EOFError as e:
-                    print(f'Error uploading image: {e}')
-                    time.sleep(2)
-            print('Upload complete, playing image...')
-            try:
-                new_file_index = client.state.filelist.index('OUTPUT')
-            except (ValueError, AttributeError):
-                print('No output.bin found, cannot play uploaded image')
-                new_file_index = 2
-            client.playFileFromList(new_file_index)
-    client.io.close()
+                    client.playFileFromList(wait_bin_index) #play wait.bin
+                    for _ in range(3):
+                        print('Uploading image...')
+                        try:
+                            upload.FemtoCircleUpload().send_file("output.bin", [out])
+                            break
+                        except EOFError as e:
+                            print(f'Error uploading image: {e}')
+                            time.sleep(2)
+                    print('Upload complete, playing image...')
+                    try:
+                        new_file_index = client.state.filelist.index('OUTPUT')
+                    except (ValueError, AttributeError):
+                        print('No output.bin found, cannot play uploaded image')
+                        new_file_index = 2
+                    client.playFileFromList(new_file_index)
+        except Exception as e:
+            print(f'Connection lost: {e}, reconnecting...')
+        finally:
+            client.io.close()
 
 if __name__ == '__main__':
     upload_thread = Thread(target=pump_images, daemon=True)
