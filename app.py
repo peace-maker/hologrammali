@@ -5,12 +5,16 @@ from threading import Lock, Thread
 from queue import Queue
 import tempfile
 from  werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 import convert, upload, control
 import time
 from PIL import Image, ImageOps
 import io
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(
+    app.wsgi_app, x_for=1
+)
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1000 * 1000
 mutex = Lock()
 upload_thread = None
